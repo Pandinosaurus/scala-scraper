@@ -1,7 +1,53 @@
-### 2.2.0 (Sep 18, 2019)
+### 3.3.0 (Oct 9, 2026)
+
+- Breaking changes
+  - Upgraded htmlunit to 5.x.
+
+### 3.2.0 (May 5, 2025)
 
 - New features
-  - Added support for Scala 2.13.
+  - Added support for configuring the jsoup parser to use.
+- Breaking changes
+  - Drops support for Scala 2.12.
+- Bug fixes
+  - Reverted Scala 3 version back to 3.3 (LTS) to fix binary compatibility issues introduced in the last version.
+
+### 3.1.3 (Mar 10, 2025)
+
+Maintenance update to update dependency versions.
+
+### 3.1.2 (Nov 24, 2024)
+
+Maintenance update to update dependency versions.
+
+### 3.1.1 (Dec 16, 2023)
+
+Maintenance update to update dependency versions.
+
+### 3.1.0 (Apr 17, 2023)
+
+- New features
+  - Added a new `ownText` method to `Element`.
+- Breaking changes
+  - Upgraded htmlunit to 3.x.
+
+### 3.0.0 (May 25, 2022)
+
+Support for Scala 3.1 was introduced.
+
+- New features
+  - Added a new `withProxy` method to `Browser`, allowing users to configure the proxy regardless of the browser
+    implementation being used.
+- Breaking changes
+  - Removed all previously deprecated code.
+
+### 2.2.1 (May 9, 2021)
+
+Support for Scala 2.11 was dropped.
+
+### 2.2.0 (Sep 18, 2019)
+
+Support for Scala 2.13 was introduced.
 
 ### 2.1.0 (Jan 15, 2018)
  

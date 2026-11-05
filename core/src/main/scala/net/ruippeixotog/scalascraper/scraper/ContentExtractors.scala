@@ -10,7 +10,8 @@ import net.ruippeixotog.scalascraper.model.{Element, ElementQuery}
   * retrieved.
   */
 object ContentExtractors {
-  @inline private[this] implicit def funcToExtractor[E <: Element, A](f: ElementQuery[E] => A) = HtmlExtractor(f)
+  @inline private implicit def funcToExtractor[E <: Element, A](f: ElementQuery[E] => A): HtmlExtractor[E, A] =
+    HtmlExtractor(f)
 
   /** An extractor for the first element matched.
     */
@@ -60,15 +61,19 @@ object ContentExtractors {
 
   /** An extractor for the value of an attribute of the first matched element.
     *
-    * @param attr the attribute name to extract
-    * @return an extractor for an attribute of the first matched element.
+    * @param attr
+    *   the attribute name to extract
+    * @return
+    *   an extractor for an attribute of the first matched element.
     */
   def attr(attr: String): HtmlExtractor[Element, String] = _.head.attr(attr)
 
   /** An extractor for a lazy iterable of the value of an attribute of each matched element.
     *
-    * @param attr the attribute name to extract
-    * @return an extractor for a lazy iterable of the value of an attribute of each matched element.
+    * @param attr
+    *   the attribute name to extract
+    * @return
+    *   an extractor for a lazy iterable of the value of an attribute of each matched element.
     */
   def attrs(attr: String): HtmlExtractor[Element, Iterable[String]] = _.map(_.attr(attr))
 
@@ -100,7 +105,9 @@ object ContentExtractors {
     case class OpenCell(idx: Int, colspan: Int, remRowspan: Int, cell: Element)
 
     def buildRow(idx: Int, cellElems: List[Element], openCells: List[OpenCell]): (List[Element], List[OpenCell]) = {
-      (cellElems, openCells) match {
+      // This will suppress "match may not be exhaustive warning" for case input: (Nil, List(_)),
+      // since it contains in case (cs, oc :: ocTail) if cs.isEmpty || idx >= oc.idx
+      ((cellElems, openCells): (List[Element], List[OpenCell]) @unchecked) match {
         case (Nil, Nil) => (Nil, Nil)
 
         case (cs, oc :: ocTail) if cs.isEmpty || idx >= oc.idx =>

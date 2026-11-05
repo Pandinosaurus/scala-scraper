@@ -3,12 +3,12 @@ package net.ruippeixotog.scalascraper.browser
 import java.io.File
 
 import akka.http.scaladsl.server.Directives._
-import com.gargoylesoftware.htmlunit.{BrowserVersion, ProxyConfig}
+import org.htmlunit.{BrowserVersion, ProxyConfig}
 import org.specs2.mutable.Specification
 
 import net.ruippeixotog.scalascraper.SocksTestHelper
 
-class HtmlUnitBrowserSpec extends Specification with TestServer with SocksTestHelper {
+class HtmlUnitBrowserSpec extends Specification with TestServer {
 
   // format: OFF
   lazy val testService = get {
@@ -25,8 +25,9 @@ class HtmlUnitBrowserSpec extends Specification with TestServer with SocksTestHe
   "An HtmlUnitBrowser" should {
 
     "execute requests with the user agent for the chosen browser" in {
-      val browser = new HtmlUnitBrowser(BrowserVersion.FIREFOX_78)
-      browser.userAgent must contain("Firefox/78.0")
+      val version = BrowserVersion.FIREFOX_ESR
+      val browser = new HtmlUnitBrowser(version)
+      browser.userAgent must contain(s"Firefox/${version.getBrowserVersionNumeric()}.0")
 
       val doc = browser.get(s"http://localhost:$testServerPort/agent")
       doc.body.text mustEqual browser.userAgent
@@ -90,17 +91,6 @@ class HtmlUnitBrowserSpec extends Specification with TestServer with SocksTestHe
       doc.root.select("#t").head.text mustEqual "Before"
       browser.closeAll()
       doc.root.select("#t").head.text must not(beEqualTo("After").eventually)
-    }
-
-    "make requests through a SOCKS server if configured" in skipIfProxyUnavailable {
-      val proxyConfig = new ProxyConfig(socksProxyHost, socksProxyPort, true)
-
-      val browser = new HtmlUnitBrowser()
-      val proxiedBrowser = new HtmlUnitBrowser(proxy = proxyConfig)
-
-      val proxyIP = proxiedBrowser.get("http://ipv4.icanhazip.com").body.text
-      val myIP = browser.get("http://ipv4.icanhazip.com").body.text
-      proxyIP !=== myIP
     }
   }
 }

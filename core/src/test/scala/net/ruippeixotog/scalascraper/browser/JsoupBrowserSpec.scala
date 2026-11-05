@@ -1,13 +1,12 @@
 package net.ruippeixotog.scalascraper.browser
 
-import java.net.{InetSocketAddress, Proxy}
-
 import akka.http.scaladsl.server.Directives._
+import org.jsoup.parser.{ParseSettings, Parser}
 import org.specs2.mutable.Specification
 
-import net.ruippeixotog.scalascraper.SocksTestHelper
+import net.ruippeixotog.scalascraper.util.LineCompare
 
-class JsoupBrowserSpec extends Specification with TestServer with SocksTestHelper {
+class JsoupBrowserSpec extends Specification with TestServer {
 
   lazy val testService = get {
     path("agent") {
@@ -27,15 +26,32 @@ class JsoupBrowserSpec extends Specification with TestServer with SocksTestHelpe
       doc.body.text mustEqual "test-agent"
     }
 
-    "make requests through a SOCKS server if configured" in skipIfProxyUnavailable {
-      val proxyConfig = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(socksProxyHost, socksProxyPort))
+    "pass custom html parser with parse settings" in {
 
-      val browser = new JsoupBrowser()
-      val proxiedBrowser = new JsoupBrowser(proxy = proxyConfig)
+      def parserBuilder(): Parser = {
+        val parser = Parser.htmlParser()
+        parser.settings(new ParseSettings(true, true))
+        parser
+      }
 
-      val proxyIP = proxiedBrowser.get("http://ipv4.icanhazip.com").body.text
-      val myIP = browser.get("http://ipv4.icanhazip.com").body.text
-      proxyIP !=== myIP
+      val browser = new JsoupBrowser(parserBuilder = parserBuilder)
+
+      val html = """
+        |<html>
+        |  <head>
+        |    <title>Test</title>
+        |  </head>
+        |  <body>
+        |    <div id="content" customSnakeTag="testValue">
+        |      <p>Some text</p>
+        |    </div>
+        |  </body>
+        |</html>
+      """.stripMargin
+
+      val parseResult = browser.parseString(html).toHtml
+
+      LineCompare.compare(html, parseResult) mustEqual true
     }
   }
 }

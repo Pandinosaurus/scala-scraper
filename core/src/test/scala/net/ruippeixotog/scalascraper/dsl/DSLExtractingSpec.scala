@@ -1,6 +1,7 @@
 package net.ruippeixotog.scalascraper.dsl
 
 import com.github.nscala_time.time.Imports._
+import org.specs2.mutable.Specification
 
 import net.ruippeixotog.scalascraper.browser._
 import net.ruippeixotog.scalascraper.dsl.DSL._
@@ -8,7 +9,6 @@ import net.ruippeixotog.scalascraper.model.{Element, ElementQuery}
 import net.ruippeixotog.scalascraper.scraper.ContentExtractors.{text => stext, _}
 import net.ruippeixotog.scalascraper.scraper.ContentParsers._
 import net.ruippeixotog.scalascraper.scraper.HtmlExtractor
-import org.specs2.mutable.Specification
 
 class DSLExtractingSpec extends Specification with BrowserHelper {
 
@@ -99,7 +99,7 @@ class DSLExtractingSpec extends Specification with BrowserHelper {
 
       "support immediate parsing of numbers after extraction" in {
         doc >> extractor("#rating", stext, asDouble) mustEqual 4.5
-        doc >> extractor("#mytable td", texts, seq(asInt)).map(_.toSeq) mustEqual Seq(3, 15, 15, 1)
+        doc >> extractor("#mytable td", texts, seq(asInt)).map(_.iterator.toSeq) mustEqual Seq(3, 15, 15, 1)
       }
 
       "allow immediate parsing of dates after extraction" in {

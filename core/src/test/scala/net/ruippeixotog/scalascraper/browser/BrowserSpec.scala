@@ -8,9 +8,10 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives.{post => httpPost, _}
 import org.specs2.mutable.Specification
 
+import net.ruippeixotog.scalascraper.SocksTestHelper
 import net.ruippeixotog.scalascraper.model._
 
-class BrowserSpec extends Specification with BrowserHelper with TestServer {
+class BrowserSpec extends Specification with BrowserHelper with TestServer with SocksTestHelper {
 
   val html = """
     <html>
@@ -19,7 +20,7 @@ class BrowserSpec extends Specification with BrowserHelper with TestServer {
       </head>
       <body id="bid" data-a="a" data-b="b">
         <div id="a1">
-          <a></a>
+          <table></table>
           <div></div>
         </div>
         <span></span>
@@ -49,7 +50,7 @@ class BrowserSpec extends Specification with BrowserHelper with TestServer {
     get {
       path("hello") { serveHtml(html) } ~
       path("encoding" / Segment) { charset =>
-        respondWithHeader(`Content-Encoding`.parseFromValueString(charset).right.get) {
+        respondWithHeader(`Content-Encoding`.parseFromValueString(charset).toOption.get) {
           serveResource(s"encoding-${charset.toLowerCase}.html", charset)
         }
       } ~
@@ -68,7 +69,7 @@ class BrowserSpec extends Specification with BrowserHelper with TestServer {
       } ~
       path("cookies") {
         optionalHeaderValuePF({ case Cookie(cookies) => cookies }) { cookies =>
-          val str = cookies.toSeq.flatten.sortBy(_.name).map { c => s"${c.name}=${c.value}" }.mkString(";")
+          val str = cookies.getOrElse(Nil).sortBy(_.name).map { c => s"${c.name}=${c.value}" }.mkString(";")
           serveText(str)
         }
       }
@@ -238,24 +239,12 @@ class BrowserSpec extends Specification with BrowserHelper with TestServer {
           val doc = browser.parseString(html)
 
           val body = doc.body
-          body.parent must beSome.which { p => p.tagName mustEqual "html" }
+          body.parent must beSome[Element].which { p => p.tagName mustEqual "html" }
           body.children.map(_.tagName) mustEqual Iterable("div", "span", "span", "div")
 
-          val a = doc.root.select("a").head
-          a.parent must beSome.which { p => p.attr("id") mustEqual "a1" }
-          a.children must beEmpty
-        }
-
-        "with correct parent and children methods" in {
-          val doc = browser.parseString(html)
-
-          val body = doc.body
-          body.parent must beSome.which { p => p.tagName mustEqual "html" }
-          body.children.map(_.tagName) mustEqual Iterable("div", "span", "span", "div")
-
-          val a = doc.root.select("a").head
-          a.parent must beSome.which { p => p.attr("id") mustEqual "a1" }
-          a.children must beEmpty
+          val table = doc.root.select("table").head
+          table.parent must beSome[Element].which { p => p.attr("id") mustEqual "a1" }
+          table.children must beEmpty
         }
 
         "with correct attr, hasAttr and attrs methods" in {
@@ -269,6 +258,14 @@ class BrowserSpec extends Specification with BrowserHelper with TestServer {
           body.attr("data-b") mustEqual "b"
           body.hasAttr("data-c") must beFalse
           body.attr("data-c") must throwA[NoSuchElementException]
+        }
+
+        "with correct text and ownText methods" in {
+          val doc = browser.parseString(html)
+
+          val textNode = doc.root.select("#t").head
+          textNode.text mustEqual "this is some text with many styles"
+          textNode.ownText must beMatching("this is( )+text with( )+styles".r)
         }
 
         "with correct innerHtml and outerHtml methods" in {
@@ -313,6 +310,15 @@ class BrowserSpec extends Specification with BrowserHelper with TestServer {
             TextNode(" styles")
           )
         }
+      }
+
+      "make requests through a SOCKS server if configured" in skipIfProxyUnavailable {
+        val proxy = Proxy(socksProxyHost, socksProxyPort, Proxy.SOCKS)
+        val proxiedBrowser = browser.withProxy(proxy)
+
+        val proxyIP = proxiedBrowser.get("http://ipv4.icanhazip.com").body.text
+        val myIP = browser.get("http://ipv4.icanhazip.com").body.text
+        proxyIP !=== myIP
       }
     }
   }
